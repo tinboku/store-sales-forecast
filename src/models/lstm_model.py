@@ -61,6 +61,11 @@ class LSTMForecaster:
 
     def fit(self, train_series):
         """Fit LSTM on training series."""
+        if len(train_series) <= self.seq_len:
+            raise ValueError(
+                f"Training series length ({len(train_series)}) must be "
+                f"greater than seq_len ({self.seq_len})"
+            )
         values = train_series.values.reshape(-1, 1)
         scaled = self.scaler.fit_transform(values).flatten()
 

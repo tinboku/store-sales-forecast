@@ -78,6 +78,8 @@ def naive_forecast(train, test):
 
 def seasonal_naive(train, test, period=12):
     """Seasonal naive: use same month from last year."""
+    if len(train) < period:
+        raise ValueError(f"Need at least {period} observations, got {len(train)}")
     preds = []
     for i in range(len(test)):
         # grab value from `period` steps back
