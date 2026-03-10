@@ -11,15 +11,16 @@ def load_raw_data(filepath="data/raw/train.csv"):
     df["Order Date"] = pd.to_datetime(df["Order Date"], format="mixed", dayfirst=False)
     df["Ship Date"] = pd.to_datetime(df["Ship Date"], format="mixed", dayfirst=False)
 
-    # drop duplicates if any
+    # drop duplicates and rows with missing dates
     df = df.drop_duplicates(subset=["Row ID"])
+    df = df.dropna(subset=["Order Date", "Sales"])
 
     # sort by date
     df = df.sort_values("Order Date").reset_index(drop=True)
     return df
 
 
-def aggregate_sales(df, freq="M", group_cols=None):
+def aggregate_sales(df, freq="ME", group_cols=None):
     """
     Aggregate sales to a given frequency.
     freq: 'D' for daily, 'W' for weekly, 'M' for monthly
@@ -40,7 +41,7 @@ def aggregate_sales(df, freq="M", group_cols=None):
 
 def get_monthly_sales(df):
     """Quick helper to get total monthly sales series."""
-    monthly = aggregate_sales(df, freq="M")
+    monthly = aggregate_sales(df, freq="ME")
     monthly = monthly.set_index("date")["sales"]
     monthly.index.freq = pd.infer_freq(monthly.index)
     return monthly
@@ -55,7 +56,7 @@ def train_test_split_ts(series, test_year=2018):
 
 def get_category_monthly(df):
     """Get monthly sales broken down by category."""
-    cat_monthly = aggregate_sales(df, freq="M", group_cols=["Category"])
+    cat_monthly = aggregate_sales(df, freq="ME", group_cols=["Category"])
     cat_monthly.columns = ["category", "date", "sales"]
     return cat_monthly
 
