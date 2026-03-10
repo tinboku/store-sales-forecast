@@ -1,0 +1,29 @@
+# Experiment configuration
+
+data:
+  raw_path: "data/raw/train.csv"
+  freq: "M"  # M=monthly, W=weekly
+  test_year: 2018
+
+sarima:
+  seasonal: true
+  m: 12
+  # set to null for auto selection
+  order: null
+  seasonal_order: null
+
+prophet:
+  yearly_seasonality: true
+  weekly_seasonality: false
+  changepoint_prior_scale: 0.05
+
+lstm:
+  seq_len: 12
+  hidden_size: 64
+  num_layers: 2
+  lr: 0.001
+  epochs: 150
+  batch_size: 8
+
+output:
+  figures_dir: "results/figures"
