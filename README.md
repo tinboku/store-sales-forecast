@@ -1,5 +1,7 @@
 # Store Sales Forecasting
 
+> Originally done as a course project (Aug-Oct 2024). Cleaned up and uploaded to GitHub.
+
 Forecasting monthly retail sales using SARIMA, Prophet and LSTM. Compares how statistical models and deep learning perform on a small dataset with strong seasonality.
 
 Data: [Kaggle Superstore Sales](https://www.kaggle.com/datasets/rohitsahoo/sales-forecasting-dataset) (~10K orders, 2015-2018, 3 categories, 4 US regions).
