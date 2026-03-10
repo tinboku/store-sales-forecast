@@ -1,55 +1,56 @@
 # Store Sales Forecasting
 
-用 SARIMA、Prophet、LSTM 三种方法预测 Superstore 月度零售销售额，对比统计模型和深度学习在小数据集上的表现。
+Forecasting monthly retail sales using SARIMA, Prophet and LSTM. Compares how statistical models and deep learning perform on a small dataset with strong seasonality.
 
-数据来自 [Kaggle Superstore Sales](https://www.kaggle.com/datasets/rohitsahoo/sales-forecasting-dataset)，约 10K 条订单记录（2015-2018），3 个品类，4 个区域。
+Data: [Kaggle Superstore Sales](https://www.kaggle.com/datasets/rohitsahoo/sales-forecasting-dataset) (~10K orders, 2015-2018, 3 categories, 4 US regions).
 
-## 怎么跑
+## How to run
 
 ```bash
 pip install -r requirements.txt
-# 把 kaggle 下载的 CSV 放到 data/raw/train.csv
 python run_experiment.py
 ```
 
-也可以直接看 notebooks：
-- `01_eda.ipynb` — EDA 和平稳性检验
-- `02_baseline_models.ipynb` — SARIMA + Prophet
-- `03_deep_learning.ipynb` — LSTM 实验
+Download the dataset from Kaggle and place it at `data/raw/train.csv`.
 
-跑测试：
+Notebooks can be explored independently:
+- `01_eda.ipynb` — EDA and stationarity tests
+- `02_baseline_models.ipynb` — SARIMA + Prophet
+- `03_deep_learning.ipynb` — LSTM experiments
+
+Run tests:
 ```bash
 pytest tests/ -v
 ```
 
-## 结果
+## Results
 
-训练集 2015-2017，测试集 2018（12 个月）
+Train: 2015-2017 (36 months), Test: 2018 (12 months)
 
 | Model | RMSE | MAE | MAPE |
 |-------|------|-----|------|
 | Seasonal Naive | 18,986 | 15,468 | 24.5% |
 | SARIMA(1,1,0)(0,1,1,12) | 21,992 | 18,947 | 44.8% |
 | Prophet | 26,629 | 19,075 | 30.9% |
-| LSTM | 29,578 | 23,403 | 37.8% |
+| LSTM (h=64, seq=12) | 29,578 | 23,403 | 37.8% |
 
-Seasonal Naive 反而最好 —— 数据只有 36 个月，季节性又很强，直接用去年同月的值就已经很准了。LSTM 在这种数据量下没什么优势，递归预测的误差累积也是个问题。
+Seasonal Naive performs best here. With only 36 months of training data and a dominant yearly pattern, directly using last year's values is hard to beat. LSTM suffers from error accumulation in recursive multi-step prediction.
 
-## 项目结构
+## Project structure
 
 ```
 src/
-  data_loader.py      # 数据加载和聚合
-  features.py         # 特征工程（lag、rolling、时间特征）
+  data_loader.py      # data loading and aggregation
+  features.py         # lag, rolling, calendar features
   evaluate.py         # RMSE / MAE / MAPE
-  utils.py            # 画图和配置
+  utils.py            # plotting helpers
   models/             # SARIMA / Prophet / LSTM
-notebooks/            # EDA + 建模实验
-tests/                # 单元测试
-configs/config.yaml   # 超参数
-results/              # 输出图表（gitignored）
+notebooks/            # EDA + modeling experiments
+tests/                # unit tests
+configs/config.yaml   # hyperparameters
+results/              # output figures (gitignored)
 ```
 
-## 依赖
+## Requirements
 
-Python 3.9+，详见 `requirements.txt`
+Python 3.9+. See `requirements.txt` for dependencies.
