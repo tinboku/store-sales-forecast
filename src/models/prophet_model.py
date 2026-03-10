@@ -1,9 +1,8 @@
 import pandas as pd
 import numpy as np
-from prophet import Prophet
 import logging
+from prophet import Prophet
 
-# prophet is super noisy
 logging.getLogger("prophet").setLevel(logging.WARNING)
 logging.getLogger("cmdstanpy").setLevel(logging.WARNING)
 
@@ -17,10 +16,7 @@ class ProphetForecaster:
         self.model = None
 
     def fit(self, train_series):
-        """
-        Fit Prophet model. Expects a pandas Series with datetime index.
-        """
-        # prophet wants columns named 'ds' and 'y'
+        # prophet needs 'ds' and 'y' columns
         df = pd.DataFrame({
             "ds": train_series.index,
             "y": train_series.values
@@ -32,38 +28,24 @@ class ProphetForecaster:
             daily_seasonality=False,
             changepoint_prior_scale=self.cp_prior,
         )
-
-        # add US holidays
         self.model.add_country_holidays(country_name="US")
-
         self.model.fit(df)
         return self
 
     def predict(self, periods, freq="MS"):
-        """Generate forecast for future periods."""
         future = self.model.make_future_dataframe(periods=periods, freq=freq)
         forecast = self.model.predict(future)
 
-        # only return the forecasted part
         pred = forecast.tail(periods)
-        result = pd.Series(
-            pred["yhat"].values,
-            index=pred["ds"].values
-        )
-        return result
+        return pd.Series(pred["yhat"].values, index=pred["ds"].values)
 
     def get_components(self, periods, freq="MS"):
-        """Return full forecast df with components (trend, seasonality etc)."""
         future = self.model.make_future_dataframe(periods=periods, freq=freq)
-        forecast = self.model.predict(future)
-        return forecast
+        return self.model.predict(future)
 
     def plot(self):
-        """Use Prophet's built-in plotting."""
         if self.model is None:
-            raise ValueError("Model not fitted yet")
-        from prophet.plot import plot_plotly
-        # just use matplotlib instead
+            raise ValueError("fit first")
         fig = self.model.plot(self.model.predict(
             self.model.make_future_dataframe(periods=12, freq="MS")
         ))

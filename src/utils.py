@@ -7,8 +7,7 @@ import numpy as np
 
 def load_config(path="configs/config.yaml"):
     with open(path, "r") as f:
-        cfg = yaml.safe_load(f)
-    return cfg
+        return yaml.safe_load(f)
 
 
 def save_figure(fig, name, dpi=150, output_dir="results/figures"):
@@ -19,7 +18,6 @@ def save_figure(fig, name, dpi=150, output_dir="results/figures"):
 
 
 def plot_forecast(train, test, forecast, title="Forecast vs Actual", save_path=None):
-    """Plot train, test, and forecasted values."""
     fig, ax = plt.subplots(figsize=(12, 5))
 
     ax.plot(train.index, train.values, label="Train", color="steelblue")
@@ -35,7 +33,6 @@ def plot_forecast(train, test, forecast, title="Forecast vs Actual", save_path=N
 
     if save_path:
         save_figure(fig, save_path)
-
     return fig
 
 
@@ -47,7 +44,6 @@ def plot_series(series, title="", ylabel="Sales ($)", save_path=None):
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
     plt.xticks(rotation=45)
     plt.tight_layout()
-
     if save_path:
         save_figure(fig, save_path)
     return fig
