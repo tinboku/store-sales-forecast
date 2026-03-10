@@ -1,18 +1,15 @@
 """
-Main entry point for running the sales forecasting experiment.
-
 Usage:
     python run_experiment.py
     python run_experiment.py --config configs/config.yaml
 """
-
 import argparse
-import sys
 import os
 import warnings
+import sys
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from src.data_loader import load_raw_data, get_monthly_sales, train_test_split_ts
 from src.models.arima_model import SarimaForecaster, naive_forecast, seasonal_naive
@@ -32,22 +29,22 @@ def run(config_path="configs/config.yaml"):
     print("  Superstore Sales Forecasting Experiment")
     print("=" * 60)
 
-    # --- Load data ---
+    # load & prep data
     print("\n[1/5] Loading data...")
-    df = load_raw_data(cfg["data"]["raw_path"])
-    monthly = get_monthly_sales(df)
-    print(f"  Total records: {len(df)}")
-    print(f"  Monthly series: {len(monthly)} points")
-    print(f"  Date range: {monthly.index[0].strftime('%Y-%m')} to {monthly.index[-1].strftime('%Y-%m')}")
+    raw = load_raw_data(cfg["data"]["raw_path"])
+    monthly = get_monthly_sales(raw)
+    print(f"  {len(raw)} records -> {len(monthly)} monthly points")
+    print(f"  Range: {monthly.index[0].strftime('%Y-%m')} ~ {monthly.index[-1].strftime('%Y-%m')}")
 
     train, test = train_test_split_ts(monthly, test_year=cfg["data"]["test_year"])
-    print(f"  Train: {len(train)} months, Test: {len(test)} months")
+    print(f"  Train: {len(train)}, Test: {len(test)}")
 
     results = []
-    os.makedirs(cfg["output"]["figures_dir"], exist_ok=True)
+    fig_dir = cfg["output"]["figures_dir"]
+    os.makedirs(fig_dir, exist_ok=True)
 
-    # --- Naive baselines ---
-    print("\n[2/5] Running baseline models...")
+    # baselines
+    print("\n[2/5] Baselines...")
     naive_pred = naive_forecast(train, test)
     results.append(evaluate_forecast(test, naive_pred, "Naive"))
 
@@ -56,8 +53,8 @@ def run(config_path="configs/config.yaml"):
     print(f"  Naive RMSE: {results[0]['RMSE']}")
     print(f"  Seasonal Naive RMSE: {results[1]['RMSE']}")
 
-    # --- SARIMA ---
-    print("\n[3/5] Fitting SARIMA model...")
+    # SARIMA
+    print("\n[3/5] SARIMA...")
     sarima = SarimaForecaster(
         order=cfg["sarima"].get("order"),
         seasonal_order=cfg["sarima"].get("seasonal_order"),
@@ -69,15 +66,15 @@ def run(config_path="configs/config.yaml"):
     print(f"  SARIMA RMSE: {results[-1]['RMSE']}")
 
     fig = plot_forecast(train, test, sarima_pred, "SARIMA Forecast")
-    save_figure(fig, "sarima_forecast.png", output_dir=cfg["output"]["figures_dir"])
+    save_figure(fig, "sarima_forecast.png", output_dir=fig_dir)
 
-    # --- Prophet ---
-    print("\n[4/5] Fitting Prophet model...")
-    prophet_cfg = cfg["prophet"]
+    # Prophet
+    print("\n[4/5] Prophet...")
+    pcfg = cfg["prophet"]
     prophet = ProphetForecaster(
-        yearly_seasonality=prophet_cfg["yearly_seasonality"],
-        weekly_seasonality=prophet_cfg["weekly_seasonality"],
-        changepoint_prior_scale=prophet_cfg["changepoint_prior_scale"],
+        yearly_seasonality=pcfg["yearly_seasonality"],
+        weekly_seasonality=pcfg["weekly_seasonality"],
+        changepoint_prior_scale=pcfg["changepoint_prior_scale"],
     )
     prophet.fit(train)
     prophet_pred = prophet.predict(periods=len(test))
@@ -86,18 +83,18 @@ def run(config_path="configs/config.yaml"):
     print(f"  Prophet RMSE: {results[-1]['RMSE']}")
 
     fig = plot_forecast(train, test, prophet_pred.values, "Prophet Forecast")
-    save_figure(fig, "prophet_forecast.png", output_dir=cfg["output"]["figures_dir"])
+    save_figure(fig, "prophet_forecast.png", output_dir=fig_dir)
 
-    # --- LSTM ---
-    print("\n[5/5] Training LSTM model...")
-    lstm_cfg = cfg["lstm"]
+    # LSTM
+    print("\n[5/5] LSTM...")
+    lcfg = cfg["lstm"]
     lstm = LSTMForecaster(
-        seq_len=lstm_cfg["seq_len"],
-        hidden_size=lstm_cfg["hidden_size"],
-        num_layers=lstm_cfg["num_layers"],
-        lr=lstm_cfg["lr"],
-        epochs=lstm_cfg["epochs"],
-        batch_size=lstm_cfg["batch_size"],
+        seq_len=lcfg["seq_len"],
+        hidden_size=lcfg["hidden_size"],
+        num_layers=lcfg["num_layers"],
+        lr=lcfg["lr"],
+        epochs=lcfg["epochs"],
+        batch_size=lcfg["batch_size"],
     )
     lstm.fit(train)
     lstm_pred = lstm.predict(steps=len(test), test_index=test.index)
@@ -105,31 +102,28 @@ def run(config_path="configs/config.yaml"):
     print(f"  LSTM RMSE: {results[-1]['RMSE']}")
 
     fig = plot_forecast(train, test, lstm_pred, "LSTM Forecast")
-    save_figure(fig, "lstm_forecast.png", output_dir=cfg["output"]["figures_dir"])
+    save_figure(fig, "lstm_forecast.png", output_dir=fig_dir)
 
-    # save training loss curve
     fig = lstm.plot_loss()
-    save_figure(fig, "lstm_loss.png", output_dir=cfg["output"]["figures_dir"])
+    save_figure(fig, "lstm_loss.png", output_dir=fig_dir)
 
-    # --- Results comparison ---
+    # comparison
     print("\n" + "=" * 60)
-    print("  Model Comparison")
+    print("  Results")
     print("=" * 60)
     comparison = compare_models(results)
     print(comparison.to_string())
 
-    # save results
-    comparison.to_csv("results/model_comparison.csv")
-    print(f"\nResults saved to results/model_comparison.csv")
-    print("Figures saved to results/figures/")
+    out_path = os.path.join("results", "model_comparison.csv")
+    os.makedirs("results", exist_ok=True)
+    comparison.to_csv(out_path)
+    print(f"\nSaved to {out_path}")
 
     return comparison
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run sales forecasting experiment")
-    parser.add_argument("--config", type=str, default="configs/config.yaml",
-                        help="Path to config file")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default="configs/config.yaml")
     args = parser.parse_args()
-
     run(args.config)
